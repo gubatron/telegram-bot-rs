@@ -16,9 +16,9 @@
 extern crate json;
 extern crate rustc_serialize;
 
+use crate::*;
 use json::JsonValue;
 use std::fmt;
-use crate::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MessageEntityType {
@@ -36,7 +36,8 @@ pub enum MessageEntityType {
     Code,
     Pre,
     TextLink,
-    TextMention
+    TextMention,
+    Spoiler,
 }
 
 impl MessageEntityType {
@@ -58,7 +59,8 @@ impl MessageEntityType {
             "pre" => MessageEntityType::Pre,
             "text_link" => MessageEntityType::TextLink,
             "text_mention" => MessageEntityType::TextMention,
-            _ => panic!("can't find this MessageEntityType")
+            "spoiler" => MessageEntityType::Spoiler,
+            _ => panic!("can't find MessageEntityType: \"{}\"", s),
         }
     }
 }
@@ -81,6 +83,7 @@ impl fmt::Display for MessageEntityType {
             MessageEntityType::Pre => write!(f, "pre"),
             MessageEntityType::TextLink => write!(f, "text_link"),
             MessageEntityType::TextMention => write!(f, "text_mention"),
+            MessageEntityType::Spoiler => write!(f, "spoiler"),
         }
     }
 }
@@ -380,8 +383,11 @@ impl JsonExt for JsonValue {
         fn as_box_message(&self) -> Option<Box<Message>>
     }
     fn as_message_entity_type(&self) -> Option<MessageEntityType> {
-        if self.is_empty() { None }
-        else { Some(MessageEntityType::from_string(format!("{}", self))) }
+        if self.is_empty() {
+            None
+        } else {
+            Some(MessageEntityType::from_string(format!("{}", self)))
+        }
     }
 }
 expand_from! {
@@ -433,7 +439,7 @@ expand_from! {
     impl From<StickerSet> for JsonValue
 }
 
-add_functionality!{
+add_functionality! {
 pub struct Update {
     pub update_id: i64,
     pub message: Option<Message>,
@@ -911,7 +917,7 @@ mod tests {
         let user;
         match json_user {
             Ok(json_data) => user = User::from_json(json_data),
-            Err(_) => user = User::empty()
+            Err(_) => user = User::empty(),
         }
         let actual = format!("{}", user.to_json());
         let reference = "{\"id\":1234,\"is_bot\":true,\"first_name\":\"iamgroot\"}".to_string();
@@ -922,12 +928,13 @@ mod tests {
     fn test_full_user() {
         let reference = "{\"id\":1234,\"is_bot\":true,\"first_name\":\"iAm\",\
             \"last_name\":\"groot\",\"language_code\":\"US\",\"can_join_groups\":true,\
-            \"can_read_all_group_messages\":false,\"supports_inline_queries\":true}".to_string();
+            \"can_read_all_group_messages\":false,\"supports_inline_queries\":true}"
+            .to_string();
         let json_user = json::parse(reference.as_str());
         let user;
         match json_user {
             Ok(json_data) => user = User::from_json(json_data),
-            Err(_) => user = User::empty()
+            Err(_) => user = User::empty(),
         }
         let actual = format!("{}", user.to_json());
         assert_eq!(actual, reference);
@@ -940,7 +947,7 @@ mod tests {
         let _user;
         match json_user {
             Ok(json_data) => _user = User::from_json(json_data),
-            Err(_) => _user = User::empty()
+            Err(_) => _user = User::empty(),
         }
     }
 
@@ -950,7 +957,8 @@ mod tests {
         let orig_user = user.clone();
         user.first_name = "ichangedmyname".to_string();
         let actual1 = format!("{}", user.to_json());
-        let reference1 = "{\"id\":0,\"is_bot\":false,\"first_name\":\"ichangedmyname\"}".to_string();
+        let reference1 =
+            "{\"id\":0,\"is_bot\":false,\"first_name\":\"ichangedmyname\"}".to_string();
         assert_eq!(actual1, reference1);
         let actual2 = format!("{}", orig_user.to_json());
         let reference2 = "{\"id\":0,\"is_bot\":false,\"first_name\":\"\"}".to_string();
@@ -987,7 +995,7 @@ mod tests {
         let me;
         match json_me {
             Ok(json_data) => me = MessageEntity::from_json(json_data),
-            Err(_) => me = MessageEntity::empty()
+            Err(_) => me = MessageEntity::empty(),
         }
         let actual = format!("{}", me.to_json());
         let reference = "{\"type\":\"cashtag\",\"offset\":42,\"length\":69}".to_string();
@@ -1003,7 +1011,7 @@ mod tests {
         let me;
         match json_me {
             Ok(json_data) => me = MessageEntity::from_json(json_data),
-            Err(_) => me = MessageEntity::empty()
+            Err(_) => me = MessageEntity::empty(),
         }
         let actual = format!("{}", me.to_json());
         assert_eq!(actual, reference);
@@ -1016,7 +1024,7 @@ mod tests {
         let _me;
         match json_me {
             Ok(json_data) => _me = MessageEntity::from_json(json_data),
-            Err(_) => _me = MessageEntity::empty()
+            Err(_) => _me = MessageEntity::empty(),
         }
     }
 
@@ -1044,7 +1052,7 @@ mod tests {
     #[test]
     fn test_input_media_photo() {
         let reference = r#"{"type":"photo","media":"test1234","caption_entities":[{"type":"mention","offset":0,"length":0},{"type":"mention","offset":1,"length":0}]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(InputMedia, reference)
         }
     }
@@ -1052,7 +1060,7 @@ mod tests {
     #[test]
     fn test_chat_photo() {
         let reference = r#"{"small_file_id":"1","small_file_unique_id":"1234","big_file_id":"2","big_file_unique_id":"2345"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ChatPhoto, reference)
         }
     }
@@ -1060,15 +1068,16 @@ mod tests {
     #[test]
     fn test_chat_invite_link() {
         let reference = r#"{"invite_link":"hello","creator":{"id":1234,"is_bot":true,"first_name":"groot"},"is_primary":true,"is_revoked":false}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ChatInviteLink, reference)
         }
     }
 
     #[test]
     fn test_chat_member() {
-        let reference = r#"{"user":{"id":1234,"is_bot":true,"first_name":"groot"},"status":"creator"}"#;
-        expand_basic_test!{
+        let reference =
+            r#"{"user":{"id":1234,"is_bot":true,"first_name":"groot"},"status":"creator"}"#;
+        expand_basic_test! {
             fn run_test(ChatMember, reference)
         }
     }
@@ -1076,7 +1085,7 @@ mod tests {
     #[test]
     fn test_chat_permissions() {
         let reference = r#"{"can_send_messages":true}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ChatPermissions, reference)
         }
     }
@@ -1084,7 +1093,7 @@ mod tests {
     #[test]
     fn test_bot_command() {
         let reference = r#"{"command":"do_it","description":"Lets do it"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(BotCommand, reference)
         }
     }
@@ -1092,15 +1101,16 @@ mod tests {
     #[test]
     fn test_response_parameters() {
         let reference = r#"{"migrate_to_chat_id":1,"retry_after":120}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ResponseParameters, reference)
         }
     }
 
     #[test]
     fn test_photo_size() {
-        let reference = r#"{"file_id":"1","file_unique_id":"1234","width":800,"height":600,"file_size":1024}"#;
-        expand_basic_test!{
+        let reference =
+            r#"{"file_id":"1","file_unique_id":"1234","width":800,"height":600,"file_size":1024}"#;
+        expand_basic_test! {
             fn run_test(PhotoSize, reference)
         }
     }
@@ -1108,7 +1118,7 @@ mod tests {
     #[test]
     fn test_animation() {
         let reference = r#"{"file_id":"1","file_unique_id":"12345","width":600,"height":800,"duration":10,"thumb":{"file_id":"1","file_unique_id":"1234","width":800,"height":600}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Animation, reference)
         }
     }
@@ -1116,7 +1126,7 @@ mod tests {
     #[test]
     fn test_audio() {
         let reference = r#"{"file_id":"1","file_unique_id":"12345","duration":60}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Audio, reference)
         }
     }
@@ -1124,15 +1134,16 @@ mod tests {
     #[test]
     fn test_document() {
         let reference = r#"{"file_id":"1","file_unique_id":"12345"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Document, reference)
         }
     }
 
     #[test]
     fn test_video() {
-        let reference = r#"{"file_id":"1","file_unique_id":"12345","width":800,"height":600,"duration":24}"#;
-        expand_basic_test!{
+        let reference =
+            r#"{"file_id":"1","file_unique_id":"12345","width":800,"height":600,"duration":24}"#;
+        expand_basic_test! {
             fn run_test(Video, reference)
         }
     }
@@ -1140,7 +1151,7 @@ mod tests {
     #[test]
     fn test_video_note() {
         let reference = r#"{"file_id":"1","file_unique_id":"12345","length":120,"duration":10}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(VideoNote, reference)
         }
     }
@@ -1148,7 +1159,7 @@ mod tests {
     #[test]
     fn test_voice() {
         let reference = r#"{"file_id":"1","file_unique_id":"12345","duration":5}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Voice, reference)
         }
     }
@@ -1156,7 +1167,7 @@ mod tests {
     #[test]
     fn test_contact() {
         let reference = r#"{"phone_number":"01234","first_name":"me","user_id":1234567890}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Contact, reference)
         }
     }
@@ -1164,7 +1175,7 @@ mod tests {
     #[test]
     fn test_dice() {
         let reference = r#"{"emoji":"dice","value":4}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Dice, reference)
         }
     }
@@ -1172,7 +1183,7 @@ mod tests {
     #[test]
     fn test_poll_option() {
         let reference = r#"{"text":"nein","voter_count":3}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(PollOption, reference)
         }
     }
@@ -1180,7 +1191,7 @@ mod tests {
     #[test]
     fn test_poll_answer() {
         let reference = r#"{"poll_id":"01234","user":{"id":123654,"is_bot":true,"first_name":"me"},"option_ids":[1,2,3,4,5]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(PollAnswer, reference)
         }
     }
@@ -1188,7 +1199,7 @@ mod tests {
     #[test]
     fn test_poll() {
         let reference = r#"{"id":"1234","question":"right?","options":[{"text":"nein","voter_count":3},{"text":"ja","voter_count":4}],"total_voter_count":7,"is_closed":true,"is_anonymous":false,"type":"regular","allows_multiple_answers":false,"explanation_entities":[{"type":"mention","offset":10,"length":20},{"type":"cashtag","offset":1,"length":2}]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Poll, reference)
         }
     }
@@ -1196,15 +1207,16 @@ mod tests {
     #[test]
     fn test_location() {
         let reference = r#"{"longitude":49.5,"latitude":9.4,"horizontal_accuracy":0.2}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Location, reference)
         }
     }
 
     #[test]
     fn test_venue() {
-        let reference = r#"{"location":{"longitude":49.5,"latitude":9.4},"title":"home","address":"at home"}"#;
-        expand_basic_test!{
+        let reference =
+            r#"{"location":{"longitude":49.5,"latitude":9.4},"title":"home","address":"at home"}"#;
+        expand_basic_test! {
             fn run_test(Venue, reference)
         }
     }
@@ -1212,7 +1224,7 @@ mod tests {
     #[test]
     fn test_proximity_alert_triggered() {
         let reference = r#"{"traveler":{"id":123654,"is_bot":true,"first_name":"travel"},"watcher":{"id":123654,"is_bot":true,"first_name":"watch"},"distance":100}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ProximityAlertTriggered, reference)
         }
     }
@@ -1220,7 +1232,7 @@ mod tests {
     #[test]
     fn test_message_id() {
         let reference = r#"{"message_id":12334}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(MessageId, reference)
         }
     }
@@ -1228,7 +1240,7 @@ mod tests {
     #[test]
     fn test_message_auto_delete_timer_changed() {
         let reference = r#"{"message_auto_delete_time":100}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(MessageAutoDeleteTimerChanged, reference)
         }
     }
@@ -1236,7 +1248,7 @@ mod tests {
     #[test]
     fn test_voice_chat_scheduled() {
         let reference = r#"{"start_date":100}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(VoiceChatScheduled, reference)
         }
     }
@@ -1244,7 +1256,7 @@ mod tests {
     #[test]
     fn test_voice_started() {
         let reference = r#"{}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(VoiceChatStarted, reference)
         }
     }
@@ -1252,7 +1264,7 @@ mod tests {
     #[test]
     fn test_voice_chat_ended() {
         let reference = r#"{"duration":100}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(VoiceChatEnded, reference)
         }
     }
@@ -1260,7 +1272,7 @@ mod tests {
     #[test]
     fn test_voice_chat_participants_invited() {
         let reference = r#"{"users":[{"id":123654,"is_bot":true,"first_name":"user1"},{"id":12365,"is_bot":true,"first_name":"user2"}]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(VoiceChatParticipantsInvited, reference)
         }
     }
@@ -1268,7 +1280,7 @@ mod tests {
     #[test]
     fn test_user_profile_photos() {
         let reference = r#"{"total_count":2,"photos":[[{"file_id":"1","file_unique_id":"1234","width":800,"height":600},{"file_id":"2","file_unique_id":"1234","width":600,"height":800}],[{"file_id":"3","file_unique_id":"1234","width":800,"height":600},{"file_id":"4","file_unique_id":"1234","width":600,"height":800}]]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(UserProfilePhotos, reference)
         }
     }
@@ -1276,7 +1288,7 @@ mod tests {
     #[test]
     fn test_file() {
         let reference = r#"{"file_id":"1","file_unique_id":"1234"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(File, reference)
         }
     }
@@ -1284,7 +1296,7 @@ mod tests {
     #[test]
     fn test_reply_keyboard_markup() {
         let reference = r#"{"keyboard":[[{"text":"quiz1"},{"text":"quiz2"}],[{"text":"quiz3"},{"text":"quiz4"}]]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ReplyKeyboardMarkup, reference)
         }
     }
@@ -1292,7 +1304,7 @@ mod tests {
     #[test]
     fn test_keyboard_button() {
         let reference = r#"{"text":"quiz","request_poll":{"type":"quiz"}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(KeyboardButton, reference)
         }
     }
@@ -1300,7 +1312,7 @@ mod tests {
     #[test]
     fn test_keyboard_button_poll_type() {
         let reference = r#"{"type":"quiz"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(KeyboardButtonPollType, reference)
         }
     }
@@ -1308,7 +1320,7 @@ mod tests {
     #[test]
     fn test_reply_keyboard_remove() {
         let reference = r#"{"remove_keyboard":true}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ReplyKeyboardRemove, reference)
         }
     }
@@ -1316,7 +1328,7 @@ mod tests {
     #[test]
     fn test_login_url() {
         let reference = r#"{"url":"https://its.me"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(LoginUrl, reference)
         }
     }
@@ -1324,7 +1336,7 @@ mod tests {
     #[test]
     fn test_force_reply() {
         let reference = r#"{"force_reply":true}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ForceReply, reference)
         }
     }
@@ -1332,7 +1344,7 @@ mod tests {
     #[test]
     fn test_chat_location() {
         let reference = r#"{"location":{"longitude":49.5,"latitude":9.4},"address":"home"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ChatLocation, reference)
         }
     }
@@ -1340,7 +1352,7 @@ mod tests {
     #[test]
     fn test_input_media() {
         let reference = r#"{"type":"video","media":"dummy"}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(InputMedia, reference)
         }
     }
@@ -1348,7 +1360,7 @@ mod tests {
     #[test]
     fn test_sticker() {
         let reference = r#"{"file_id":"1","file_unique_id":"1234","width":64,"height":64,"is_animated":true,"thumb":{"file_id":"1","file_unique_id":"1234","width":800,"height":600},"mask_position":{"point":"chin","x_shift":1.1,"y_shift":2.5,"scale":2.1}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Sticker, reference)
         }
     }
@@ -1356,7 +1368,7 @@ mod tests {
     #[test]
     fn test_sticker_set() {
         let reference = r#"{"name":"stickerset","title":"stickers","is_animated":true,"contains_masks":false,"stickers":[{"file_id":"1","file_unique_id":"1234","width":64,"height":64,"is_animated":true},{"file_id":"2","file_unique_id":"2345","width":32,"height":32,"is_animated":false}]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(StickerSet, reference)
         }
     }
@@ -1364,7 +1376,7 @@ mod tests {
     #[test]
     fn test_mask_position() {
         let reference = r#"{"point":"chin","x_shift":1.3,"y_shift":2.5,"scale":2.1}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(MaskPosition, reference)
         }
     }
@@ -1372,7 +1384,7 @@ mod tests {
     #[test]
     fn test_chat_member_updated() {
         let reference = r#"{"chat":{"id":1234,"type":"private"},"from":{"id":1234,"is_bot":true,"first_name":"itsme"},"date":12,"old_chat_member":{"user":{"id":1234,"is_bot":true,"first_name":"groot"},"status":"creator"},"new_chat_member":{"user":{"id":1234,"is_bot":true,"first_name":"root"},"status":"creator"}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(ChatMemberUpdated, reference)
         }
     }
@@ -1380,7 +1392,7 @@ mod tests {
     #[test]
     fn test_callback_query() {
         let reference = r#"{"id":"1234","from":{"id":1234,"is_bot":true,"first_name":"itsme"},"message":{"message_id":10,"date":5,"chat":{"id":12,"type":"private"}}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(CallbackQuery, reference)
         }
     }
@@ -1388,7 +1400,7 @@ mod tests {
     #[test]
     fn test_inline_keyboard_button() {
         let reference = r#"{"text":"hello","login_url":{"url":"https://example.com"}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(InlineKeyboardButton, reference)
         }
     }
@@ -1396,7 +1408,7 @@ mod tests {
     #[test]
     fn test_inline_keyboard_markup() {
         let reference = r#"{"inline_keyboard":[[{"text":"hello1"},{"text":"hello2"}],[{"text":"hello3"},{"text":"hello4"}]]}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(InlineKeyboardMarkup, reference)
         }
     }
@@ -1404,7 +1416,7 @@ mod tests {
     #[test]
     fn test_chat() {
         let reference = r#"{"id":1,"type":"private","photo":{"small_file_id":"1","small_file_unique_id":"1234","big_file_id":"2","big_file_unique_id":"2345"},"pinned_message":{"message_id":10,"date":5,"chat":{"id":12,"type":"private"}},"permissions":{"can_send_messages":true},"location":{"location":{"longitude":49.1,"latitude":10.2},"address":"here"}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Chat, reference)
         }
     }
@@ -1412,7 +1424,7 @@ mod tests {
     #[test]
     fn test_message() {
         let reference = r#"{"message_id":32,"from":{"id":1234,"is_bot":true,"first_name":"itsme"},"sender_chat":{"id":12345,"type":"group"},"date":5,"chat":{"id":12,"type":"private"},"reply_to_message":{"message_id":10,"date":5,"chat":{"id":12,"type":"private"}}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Message, reference)
         }
     }
@@ -1420,7 +1432,7 @@ mod tests {
     #[test]
     fn test_update() {
         let reference = r#"{"update_id":10,"message":{"message_id":10,"date":5,"chat":{"id":12,"type":"private"}},"poll_answer":{"poll_id":"test","user":{"id":13,"is_bot":false,"first_name":"user"},"option_ids":[0,1,2]}}"#;
-        expand_basic_test!{
+        expand_basic_test! {
             fn run_test(Update, reference)
         }
     }

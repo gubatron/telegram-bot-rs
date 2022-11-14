@@ -12,9 +12,9 @@ extern crate json;
 extern crate rustc_serialize;
 extern crate urlencoding;
 
-use json::JsonValue;
-use crate::*;
 use crate::objects::*;
+use crate::*;
+use json::JsonValue;
 use std::sync::mpsc::Sender;
 use std::thread;
 
@@ -43,18 +43,16 @@ impl Bot {
 
     pub fn start_polling(&mut self, tx: Sender<Update>) {
         let mut bot = self.clone();
-        thread::spawn(move || {
-            loop {
-                let updates = bot.get_updates(None, None, None);
-                match updates {
-                    Some(us) => {
-                        for u in us {
-                            assert!(tx.send(u).is_ok());
-                        }
-                    },
-                    None => ()
-                };
-            }
+        thread::spawn(move || loop {
+            let updates = bot.get_updates(None, None, None);
+            match updates {
+                Some(us) => {
+                    for u in us {
+                        assert!(tx.send(u).is_ok());
+                    }
+                }
+                None => (),
+            };
         });
     }
 
@@ -64,31 +62,34 @@ impl Bot {
         let res = reqwest::blocking::get(request);
         let mut json_response = JsonValue::Null;
         match res {
-            Ok(r) => {
-                match r.text() {
-                    Ok(result) => json_response = json::parse(&*result).unwrap(),
-                    Err(_) => ()
-                }
-            }
-            Err(_) => ()
+            Ok(r) => match r.text() {
+                Ok(result) => json_response = json::parse(&*result).unwrap(),
+                Err(_) => (),
+            },
+            Err(_) => (),
         }
         json_response
     }
 
-    pub fn get_updates(&mut self, limit: Option<i32>, timeout: Option<i32>, allowed_updates: Option<Vec<String>>) -> Option<Vec<Update>> {
+    pub fn get_updates(
+        &mut self,
+        limit: Option<i32>,
+        timeout: Option<i32>,
+        allowed_updates: Option<Vec<String>>,
+    ) -> Option<Vec<Update>> {
         let mut parameters = "".to_string();
         parameters.push_str(&*format!("offset={}&", self.offset));
         match limit {
             Some(o) => parameters.push_str(&*format!("limit={}&", Custom::to_json(o))),
-            None => ()
+            None => (),
         }
         match timeout {
             Some(o) => parameters.push_str(&*format!("timeout={}&", Custom::to_json(o))),
-            None => ()
+            None => (),
         }
         match allowed_updates {
             Some(o) => parameters.push_str(&*format!("allowed_updates={}&", Custom::to_json(o))),
-            None => ()
+            None => (),
         }
         parameters.pop();
         let res = self.send_request("getUpdates".to_string(), parameters);
@@ -112,11 +113,21 @@ impl Bot {
         }
     }
 
-    pub fn send_message(&mut self, chat_id: i64, text: String, parse_mode: Option<String>,
-                        entities: Option<Vec<MessageEntity>>, disable_web_page_preview: Option<bool>,
-                        disable_notification: Option<bool>, reply_to_message_id: Option<i32>,
-                        allow_sending_without_reply: Option<bool>, reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                        reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_message(
+        &mut self,
+        chat_id: i64,
+        text: String,
+        parse_mode: Option<String>,
+        entities: Option<Vec<MessageEntity>>,
+        disable_web_page_preview: Option<bool>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, text
@@ -135,7 +146,13 @@ impl Bot {
         }
     }
 
-    pub fn forward_message(&mut self, chat_id: i64, from_chat_id: i64, message_id: i32, disable_notification: Option<bool>) -> Option<Message> {
+    pub fn forward_message(
+        &mut self,
+        chat_id: i64,
+        from_chat_id: i64,
+        message_id: i32,
+        disable_notification: Option<bool>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, from_chat_id, message_id
@@ -150,11 +167,22 @@ impl Bot {
         }
     }
 
-    pub fn copy_message(&mut self, chat_id: i64, from_chat_id: i64, message_id: i32, caption: Option<String>,
-                        parse_mode: Option<String>, caption_entities: Option<Vec<MessageEntity>>,
-                        disable_notification: Option<bool>, reply_to_message_id: Option<i32>,
-                        allow_sending_without_reply: Option<bool>, reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                        reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> i32 {
+    pub fn copy_message(
+        &mut self,
+        chat_id: i64,
+        from_chat_id: i64,
+        message_id: i32,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> i32 {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, from_chat_id, message_id
@@ -176,10 +204,21 @@ impl Bot {
         }
     }
 
-    pub fn send_photo(&mut self, chat_id: i64, photo: String, caption: Option<String>, parse_mode: Option<String>,
-                      caption_entities: Option<Vec<MessageEntity>>, disable_notification: Option<bool>, reply_to_message_id: Option<i32>,
-                      allow_sending_without_reply: Option<bool>, reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                      reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_photo(
+        &mut self,
+        chat_id: i64,
+        photo: String,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, photo
@@ -198,11 +237,25 @@ impl Bot {
         }
     }
 
-    pub fn send_audio(&mut self, chat_id: i64, audio: String, caption: Option<String>, parse_mode: Option<String>,
-                      caption_entities: Option<Vec<MessageEntity>>, duration: Option<i32>, performer: Option<String>,
-                      title: Option<String>, thumb: Option<String>, disable_notification: Option<bool>, reply_to_message_id: Option<i32>,
-                      allow_sending_without_reply: Option<bool>, reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                      reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_audio(
+        &mut self,
+        chat_id: i64,
+        audio: String,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        duration: Option<i32>,
+        performer: Option<String>,
+        title: Option<String>,
+        thumb: Option<String>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, audio
@@ -221,12 +274,23 @@ impl Bot {
         }
     }
 
-    pub fn send_document(&mut self, chat_id: i64, document: String, thumb: Option<String>, caption: Option<String>,
-                         parse_mode: Option<String>, caption_entities: Option<Vec<MessageEntity>>,
-                         disable_content_type_detection: Option<bool>, disable_notification: Option<bool>,
-                         reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                         reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                         reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_document(
+        &mut self,
+        chat_id: i64,
+        document: String,
+        thumb: Option<String>,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        disable_content_type_detection: Option<bool>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, document
@@ -245,12 +309,26 @@ impl Bot {
         }
     }
 
-    pub fn send_video(&mut self, chat_id: i64, video: String, duration: Option<i32>, width: Option<i32>,
-                      height: Option<i32>, thumb: Option<String>, caption: Option<String>, parse_mode: Option<String>,
-                      caption_entities: Option<Vec<MessageEntity>>, supports_streaming: Option<bool>,
-                      disable_notification: Option<bool>, reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                      reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                      reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_video(
+        &mut self,
+        chat_id: i64,
+        video: String,
+        duration: Option<i32>,
+        width: Option<i32>,
+        height: Option<i32>,
+        thumb: Option<String>,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        supports_streaming: Option<bool>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, video
@@ -269,12 +347,25 @@ impl Bot {
         }
     }
 
-    pub fn send_animation(&mut self, chat_id: i64, animation: String, duration: Option<i32>, width: Option<i32>,
-                          height: Option<i32>, thumb: Option<String>, caption: Option<String>, parse_mode: Option<String>,
-                          caption_entities: Option<Vec<MessageEntity>>, disable_notification: Option<bool>,
-                          reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                          reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                          reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_animation(
+        &mut self,
+        chat_id: i64,
+        animation: String,
+        duration: Option<i32>,
+        width: Option<i32>,
+        height: Option<i32>,
+        thumb: Option<String>,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, animation
@@ -293,11 +384,22 @@ impl Bot {
         }
     }
 
-    pub fn send_voice(&mut self, chat_id: i64, voice: String, caption: Option<String>, parse_mode: Option<String>,
-                      caption_entities: Option<Vec<MessageEntity>>, duration: Option<i32>, disable_notification: Option<bool>,
-                      reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                      reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                      reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_voice(
+        &mut self,
+        chat_id: i64,
+        voice: String,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        duration: Option<i32>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, voice
@@ -316,11 +418,21 @@ impl Bot {
         }
     }
 
-    pub fn send_video_note(&mut self, chat_id: i64, video_note: String, duration: Option<i32>, length: Option<i32>,
-                           thumb: Option<String>, disable_notification: Option<bool>,
-                           reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                           reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                           reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_video_note(
+        &mut self,
+        chat_id: i64,
+        video_note: String,
+        duration: Option<i32>,
+        length: Option<i32>,
+        thumb: Option<String>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, video_note
@@ -338,8 +450,14 @@ impl Bot {
         }
     }
 
-    pub fn send_media_group(&mut self, chat_id: i64, media: Vec<InputMedia>, disable_notification: Option<bool>,
-                            reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>) -> Option<Vec<Message>> {
+    pub fn send_media_group(
+        &mut self,
+        chat_id: i64,
+        media: Vec<InputMedia>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+    ) -> Option<Vec<Message>> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, media
@@ -357,11 +475,23 @@ impl Bot {
         }
     }
 
-    pub fn send_location(&mut self, chat_id: i64, latitude: f64, longitude: f64, horizontal_accuracy: Option<f64>,
-                         live_period: Option<i32>, heading: Option<i32>, proximity_alert_radius: Option<i32>, disable_notification: Option<bool>,
-                         reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                         reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>, reply_markup_rkr: Option<ReplyKeyboardRemove>,
-                         reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_location(
+        &mut self,
+        chat_id: i64,
+        latitude: f64,
+        longitude: f64,
+        horizontal_accuracy: Option<f64>,
+        live_period: Option<i32>,
+        heading: Option<i32>,
+        proximity_alert_radius: Option<i32>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, latitude, longitude
@@ -380,10 +510,18 @@ impl Bot {
         }
     }
 
-    pub fn edit_message_live_location(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                                      latitude: f64, longitude: f64, horizontal_accuracy: Option<f64>,
-                                      heading: Option<i32>, proximity_alert_radius: Option<i32>,
-                                      reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn edit_message_live_location(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        latitude: f64,
+        longitude: f64,
+        horizontal_accuracy: Option<f64>,
+        heading: Option<i32>,
+        proximity_alert_radius: Option<i32>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, latitude, longitude
@@ -401,8 +539,13 @@ impl Bot {
         }
     }
 
-    pub fn stop_message_live_location(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                                      reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn stop_message_live_location(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_opt_into_string! {
             parameters, chat_id, message_id, inline_message_id
@@ -417,12 +560,25 @@ impl Bot {
         }
     }
 
-    pub fn send_venue(&mut self, chat_id: i64, latitude: f64, longitude: f64, title: String, address: String,
-                      foursquare_id: Option<String>, foursquare_type: Option<String>, google_place_id: Option<String>,
-                      google_place_type: Option<String>, disable_notification: Option<bool>,
-                      reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                      reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                      reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_venue(
+        &mut self,
+        chat_id: i64,
+        latitude: f64,
+        longitude: f64,
+        title: String,
+        address: String,
+        foursquare_id: Option<String>,
+        foursquare_type: Option<String>,
+        google_place_id: Option<String>,
+        google_place_type: Option<String>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, latitude, longitude, title, address
@@ -441,11 +597,21 @@ impl Bot {
         }
     }
 
-    pub fn send_contact(&mut self, chat_id: i64, phone_number: String, first_name: String,
-                        last_name: Option<String>, vcard: Option<String>, disable_notification: Option<bool>,
-                        reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                        reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                        reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_contact(
+        &mut self,
+        chat_id: i64,
+        phone_number: String,
+        first_name: String,
+        last_name: Option<String>,
+        vcard: Option<String>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, phone_number, first_name
@@ -463,14 +629,29 @@ impl Bot {
         }
     }
 
-    pub fn send_poll(&mut self, chat_id: i64, question: String, options: Vec<String>,
-                     is_anonymous: Option<bool>, typ: Option<String>, allows_multiple_answers: Option<bool>,
-                     correct_option_id: Option<i32>, explanation: Option<String>, explanation_parse_mode: Option<String>,
-                     explanation_entities: Option<Vec<MessageEntity>>, open_period: Option<i32>, close_date: Option<i32>,
-                     is_closed: Option<i32>, disable_notification: Option<bool>,
-                     reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                     reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                     reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_poll(
+        &mut self,
+        chat_id: i64,
+        question: String,
+        options: Vec<String>,
+        is_anonymous: Option<bool>,
+        typ: Option<String>,
+        allows_multiple_answers: Option<bool>,
+        correct_option_id: Option<i32>,
+        explanation: Option<String>,
+        explanation_parse_mode: Option<String>,
+        explanation_entities: Option<Vec<MessageEntity>>,
+        open_period: Option<i32>,
+        close_date: Option<i32>,
+        is_closed: Option<i32>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, question, options
@@ -490,10 +671,18 @@ impl Bot {
         }
     }
 
-    pub fn send_dice(&mut self, chat_id: i64, emoji: Option<String>, disable_notification: Option<bool>,
-                     reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                     reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                     reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_dice(
+        &mut self,
+        chat_id: i64,
+        emoji: Option<String>,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id
@@ -523,7 +712,12 @@ impl Bot {
         }
     }
 
-    pub fn get_user_profile_photos(&mut self, user_id: i64, offset: Option<i32>, limit: Option<i32>) -> Option<UserProfilePhotos> {
+    pub fn get_user_profile_photos(
+        &mut self,
+        user_id: i64,
+        offset: Option<i32>,
+        limit: Option<i32>,
+    ) -> Option<UserProfilePhotos> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, user_id
@@ -541,7 +735,13 @@ impl Bot {
         }
     }
 
-    pub fn kick_chat_member(&mut self, chat_id: i64, user_id: i64, until_date: Option<i32>, revoke_messages: Option<bool>) -> bool {
+    pub fn kick_chat_member(
+        &mut self,
+        chat_id: i64,
+        user_id: i64,
+        until_date: Option<i32>,
+        revoke_messages: Option<bool>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, user_id
@@ -556,7 +756,12 @@ impl Bot {
         }
     }
 
-    pub fn unban_chat_member(&mut self, chat_id: i64, user_id: i64, only_if_banned: Option<bool>) -> bool {
+    pub fn unban_chat_member(
+        &mut self,
+        chat_id: i64,
+        user_id: i64,
+        only_if_banned: Option<bool>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, user_id
@@ -571,7 +776,13 @@ impl Bot {
         }
     }
 
-    pub fn restrict_chat_member(&mut self, chat_id: i64, user_id: i64, permissions: ChatPermissions, until_date: Option<i32>) -> bool {
+    pub fn restrict_chat_member(
+        &mut self,
+        chat_id: i64,
+        user_id: i64,
+        permissions: ChatPermissions,
+        until_date: Option<i32>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, user_id, permissions
@@ -586,12 +797,22 @@ impl Bot {
         }
     }
 
-    pub fn promote_chat_member(&mut self, chat_id: i64, user_id: i64, is_anonymous: Option<bool>,
-                               can_manage_chat: Option<bool>, can_post_messages: Option<bool>,
-                               can_edit_messages: Option<bool>, can_delete_messages: Option<bool>,
-                               can_manage_voice_chats: Option<bool>, can_restrict_members: Option<bool>,
-                               can_promote_members: Option<bool>, can_change_info: Option<bool>,
-                               can_invite_users: Option<bool>, can_pin_messages: Option<bool>) -> bool {
+    pub fn promote_chat_member(
+        &mut self,
+        chat_id: i64,
+        user_id: i64,
+        is_anonymous: Option<bool>,
+        can_manage_chat: Option<bool>,
+        can_post_messages: Option<bool>,
+        can_edit_messages: Option<bool>,
+        can_delete_messages: Option<bool>,
+        can_manage_voice_chats: Option<bool>,
+        can_restrict_members: Option<bool>,
+        can_promote_members: Option<bool>,
+        can_change_info: Option<bool>,
+        can_invite_users: Option<bool>,
+        can_pin_messages: Option<bool>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, user_id
@@ -608,7 +829,12 @@ impl Bot {
         }
     }
 
-    pub fn set_chat_administrator_custom_title(&mut self, chat_id: i64, user_id: i64, custom_title: String) -> bool {
+    pub fn set_chat_administrator_custom_title(
+        &mut self,
+        chat_id: i64,
+        user_id: i64,
+        custom_title: String,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, user_id, custom_title
@@ -647,7 +873,12 @@ impl Bot {
         }
     }
 
-    pub fn create_chat_invite_link(&mut self, chat_id: i64, expire_date: Option<i32>, member_limit: Option<i32>) -> Option<ChatInviteLink> {
+    pub fn create_chat_invite_link(
+        &mut self,
+        chat_id: i64,
+        expire_date: Option<i32>,
+        member_limit: Option<i32>,
+    ) -> Option<ChatInviteLink> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id
@@ -665,7 +896,13 @@ impl Bot {
         }
     }
 
-    pub fn edit_chat_invite_link(&mut self, chat_id: i64, invite_link: String, expire_date: Option<i32>, member_limit: Option<i32>) -> Option<ChatInviteLink> {
+    pub fn edit_chat_invite_link(
+        &mut self,
+        chat_id: i64,
+        invite_link: String,
+        expire_date: Option<i32>,
+        member_limit: Option<i32>,
+    ) -> Option<ChatInviteLink> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, invite_link
@@ -683,7 +920,11 @@ impl Bot {
         }
     }
 
-    pub fn revoke_chat_invite_link(&mut self, chat_id: i64, invite_link: String) -> Option<ChatInviteLink> {
+    pub fn revoke_chat_invite_link(
+        &mut self,
+        chat_id: i64,
+        invite_link: String,
+    ) -> Option<ChatInviteLink> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, invite_link
@@ -734,7 +975,12 @@ impl Bot {
         }
     }
 
-    pub fn pin_chat_message(&mut self, chat_id: i64, message_id: i32, disable_notification: Option<bool>) -> bool {
+    pub fn pin_chat_message(
+        &mut self,
+        chat_id: i64,
+        message_id: i32,
+        disable_notification: Option<bool>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, message_id
@@ -869,8 +1115,14 @@ impl Bot {
         }
     }
 
-    pub fn answer_callback_query(&mut self, callback_query_id: String, text: String, show_alert: Option<bool>,
-                                 url: Option<String>, cache_time: Option<i32>) -> bool {
+    pub fn answer_callback_query(
+        &mut self,
+        callback_query_id: String,
+        text: String,
+        show_alert: Option<bool>,
+        url: Option<String>,
+        cache_time: Option<i32>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, callback_query_id, text
@@ -907,9 +1159,17 @@ impl Bot {
         }
     }
 
-    pub fn edit_message_text(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                             text: Option<String>, parse_mode: Option<String>, entities: Option<Vec<MessageEntity>>,
-                             disable_web_page_preview: Option<bool>, reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn edit_message_text(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        text: Option<String>,
+        parse_mode: Option<String>,
+        entities: Option<Vec<MessageEntity>>,
+        disable_web_page_preview: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_opt_into_string! {
             parameters, chat_id, message_id, inline_message_id, text, parse_mode, entities, disable_web_page_preview
@@ -924,9 +1184,16 @@ impl Bot {
         }
     }
 
-    pub fn edit_message_caption(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                             caption: Option<String>, parse_mode: Option<String>, caption_entities: Option<Vec<MessageEntity>>,
-                             reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn edit_message_caption(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        caption: Option<String>,
+        parse_mode: Option<String>,
+        caption_entities: Option<Vec<MessageEntity>>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_opt_into_string! {
             parameters, chat_id, message_id, inline_message_id, caption, parse_mode, caption_entities
@@ -941,8 +1208,14 @@ impl Bot {
         }
     }
 
-    pub fn edit_message_media(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                                media: Option<InputMedia>, reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn edit_message_media(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        media: Option<InputMedia>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_opt_into_string! {
             parameters, chat_id, message_id, inline_message_id, media
@@ -957,8 +1230,13 @@ impl Bot {
         }
     }
 
-    pub fn edit_message_reply_markup(&mut self, chat_id: Option<i64>, message_id: Option<i32>, inline_message_id: Option<String>,
-                              reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Message> {
+    pub fn edit_message_reply_markup(
+        &mut self,
+        chat_id: Option<i64>,
+        message_id: Option<i32>,
+        inline_message_id: Option<String>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_opt_into_string! {
             parameters, chat_id, message_id, inline_message_id
@@ -973,7 +1251,12 @@ impl Bot {
         }
     }
 
-    pub fn stop_poll(&mut self, chat_id: i64, message_id: i32, reply_markup_ikm: Option<InlineKeyboardMarkup>) -> Option<Poll> {
+    pub fn stop_poll(
+        &mut self,
+        chat_id: i64,
+        message_id: i32,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+    ) -> Option<Poll> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, message_id
@@ -1003,10 +1286,18 @@ impl Bot {
         }
     }
 
-    pub fn send_sticker(&mut self, chat_id: i64, sticker: String, disable_notification: Option<bool>,
-                        reply_to_message_id: Option<i32>, allow_sending_without_reply: Option<bool>,
-                        reply_markup_ikm: Option<InlineKeyboardMarkup>, reply_markup_rkm: Option<ReplyKeyboardMarkup>,
-                        reply_markup_rkr: Option<ReplyKeyboardRemove>, reply_markup_fr: Option<ForceReply>) -> Option<Message> {
+    pub fn send_sticker(
+        &mut self,
+        chat_id: i64,
+        sticker: String,
+        disable_notification: Option<bool>,
+        reply_to_message_id: Option<i32>,
+        allow_sending_without_reply: Option<bool>,
+        reply_markup_ikm: Option<InlineKeyboardMarkup>,
+        reply_markup_rkm: Option<ReplyKeyboardMarkup>,
+        reply_markup_rkr: Option<ReplyKeyboardRemove>,
+        reply_markup_fr: Option<ForceReply>,
+    ) -> Option<Message> {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, chat_id, sticker
@@ -1039,8 +1330,16 @@ impl Bot {
         }
     }
 
-    pub fn create_new_sticker_set(&mut self, user_id: i64, name: String, title: String, png_sticker: Option<String>,
-                                  emojis: String, contains_masks: Option<bool>, mask_position: Option<MaskPosition>) -> bool {
+    pub fn create_new_sticker_set(
+        &mut self,
+        user_id: i64,
+        name: String,
+        title: String,
+        png_sticker: Option<String>,
+        emojis: String,
+        contains_masks: Option<bool>,
+        mask_position: Option<MaskPosition>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, user_id, name, title, emojis
@@ -1055,8 +1354,14 @@ impl Bot {
         }
     }
 
-    pub fn add_sticker_to_set(&mut self, user_id: i64, name: String, png_sticker: Option<String>,
-                                  emojis: String, mask_position: Option<MaskPosition>) -> bool {
+    pub fn add_sticker_to_set(
+        &mut self,
+        user_id: i64,
+        name: String,
+        png_sticker: Option<String>,
+        emojis: String,
+        mask_position: Option<MaskPosition>,
+    ) -> bool {
         let mut parameters = "".to_string();
         expand_parameters_into_string! {
             parameters, user_id, name, emojis
@@ -1115,7 +1420,7 @@ impl Clone for Bot {
     fn clone(&self) -> Self {
         Bot {
             key: self.key.clone(),
-            offset: self.offset
+            offset: self.offset,
         }
     }
 }

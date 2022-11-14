@@ -3,7 +3,6 @@
 // stuff for objects
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 #[macro_export]
 macro_rules! vec_to_json_array {
     ($($fname:ident($name:ident))*) => {
@@ -101,7 +100,7 @@ macro_rules! add_functionality_empty {
 
         impl $name {
             pub fn from_json(_data: JsonValue) -> $name {
-                $name{}
+                $name {}
             }
 
             pub fn to_json(&self) -> JsonValue {
@@ -109,7 +108,7 @@ macro_rules! add_functionality_empty {
             }
 
             pub fn empty() -> $name {
-                $name{}
+                $name {}
             }
         }
         impl fmt::Display for $name {
@@ -122,7 +121,7 @@ macro_rules! add_functionality_empty {
                 $name {}
             }
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -131,7 +130,7 @@ macro_rules! custom_from_json {
         fn from_json(s: JsonValue) -> $fname {
             s.$func().$extract()
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -141,7 +140,7 @@ macro_rules! custom_push {
             data.push(format!("{}: {}", name, v));
             data
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -150,16 +149,16 @@ macro_rules! custom_default {
         fn default() -> Self {
             $default
         }
-    }
+    };
 }
 
 #[macro_export]
 macro_rules! custom_url_encode {
     (fn url_encode(v: Self)) => {
         fn url_encode(v: Self) -> String {
-            urlencoding::encode(&*format!("{}",Custom::to_json(v)))
+            urlencoding::encode(&*format!("{}", Custom::to_json(v)))
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -552,11 +551,11 @@ macro_rules! expand_basic_test {
         let me;
         match json_me {
             Ok(json_data) => me = $fname::from_json(json_data),
-            Err(_) => me = $fname::empty()
+            Err(_) => me = $fname::empty(),
         }
         let actual = format!("{}", me.to_json());
         assert_eq!(actual, $reference);
-    }
+    };
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -601,7 +600,7 @@ macro_rules! expand_make_request_to_message {
             let ret: Message = Custom::from_json($res["result"].clone());
             Some(ret)
         }
-    }
+    };
 }
 
 #[macro_export]
@@ -613,5 +612,5 @@ macro_rules! expand_make_request_to_bool {
             let ret: bool = Custom::from_json($res["result"].clone());
             ret
         }
-    }
+    };
 }
