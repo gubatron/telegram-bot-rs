@@ -38,6 +38,7 @@ pub enum MessageEntityType {
     TextLink,
     TextMention,
     Spoiler,
+    CustomEmoji
 }
 
 impl MessageEntityType {
@@ -60,6 +61,7 @@ impl MessageEntityType {
             "text_link" => MessageEntityType::TextLink,
             "text_mention" => MessageEntityType::TextMention,
             "spoiler" => MessageEntityType::Spoiler,
+            "custom_emoji" => MessageEntityType::CustomEmoji,
             _ => panic!("can't find MessageEntityType: \"{}\"", s),
         }
     }
@@ -84,6 +86,7 @@ impl fmt::Display for MessageEntityType {
             MessageEntityType::TextLink => write!(f, "text_link"),
             MessageEntityType::TextMention => write!(f, "text_mention"),
             MessageEntityType::Spoiler => write!(f, "spoiler"),
+            MessageEntityType::CustomEmoji => write!(f, "custom_emoji"),
         }
     }
 }
