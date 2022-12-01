@@ -156,7 +156,7 @@ macro_rules! custom_default {
 macro_rules! custom_url_encode {
     (fn url_encode(v: Self)) => {
         fn url_encode(v: Self) -> String {
-            urlencoding::encode(&*format!("{}", Custom::to_json(v)))
+            urlencoding::encode(&*format!("{}", Custom::to_json(v))).to_string()
         }
     };
 }
