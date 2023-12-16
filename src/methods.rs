@@ -16,7 +16,6 @@ use crate::objects::*;
 use crate::*;
 use json::JsonValue;
 use std::sync::mpsc::Sender;
-use std::thread;
 
 pub struct Bot {
     key: String,
@@ -43,7 +42,8 @@ impl Bot {
 
     pub fn start_polling(&mut self, tx: Sender<Update>) {
         let mut bot = self.clone();
-        thread::spawn(move || loop {
+        let thread_builder = std::thread::Builder::new().name("telegram-api-rs::start_polling loop thread".into());
+        let handle = thread_builder.spawn(move || loop {
             let updates = bot.get_updates(None, None, None);
             match updates {
                 Some(us) => {
@@ -54,6 +54,7 @@ impl Bot {
                 None => (),
             };
         });
+        handle.unwrap().join().unwrap();
     }
 
     fn send_request(&self, method: String, parameters: String) -> JsonValue {
