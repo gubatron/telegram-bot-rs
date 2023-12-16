@@ -40,7 +40,7 @@ impl Bot {
     /// println!("Got: {}", received);
     /// ```
 
-    pub fn start_polling(&mut self, tx: Sender<Update>) {
+    pub fn start_polling(&mut self, tx: Sender<Update>) -> Result<std::thread::JoinHandle<()>, Box<dyn std::error::Error>> {
         let mut bot = self.clone();
         let thread_builder = std::thread::Builder::new().name("telegram-api-rs::start_polling loop thread".into());
         let handle = thread_builder.spawn(move || loop {
@@ -53,8 +53,9 @@ impl Bot {
                 }
                 None => (),
             };
-        });
-        handle.unwrap().join().unwrap();
+        })?;
+
+        Ok(handle)
     }
 
     fn send_request(&self, method: String, parameters: String) -> JsonValue {
