@@ -38,7 +38,7 @@ pub enum MessageEntityType {
     TextLink,
     TextMention,
     Spoiler,
-    CustomEmoji
+    CustomEmoji,
 }
 
 impl MessageEntityType {
