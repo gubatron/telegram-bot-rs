@@ -1,6 +1,6 @@
 [package]
 name = "telegram-api-rs"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["jrmbchtl","gubatron"]
 edition = "2021"
 description = "Telegram API written in RUST"

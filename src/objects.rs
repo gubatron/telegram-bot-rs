@@ -39,6 +39,7 @@ pub enum MessageEntityType {
     TextMention,
     Spoiler,
     CustomEmoji,
+    Blockquote,
 }
 
 impl MessageEntityType {
@@ -62,7 +63,8 @@ impl MessageEntityType {
             "text_mention" => MessageEntityType::TextMention,
             "spoiler" => MessageEntityType::Spoiler,
             "custom_emoji" => MessageEntityType::CustomEmoji,
-            _ => panic!("can't find MessageEntityType: \"{}\"", s),
+            "blockquote" => MessageEntityType::Blockquote,
+            _ => panic!("objects::MessageEntityType::from_string(\"{}\") error can't find MessageEntityType", s),
         }
     }
 }
@@ -87,6 +89,7 @@ impl fmt::Display for MessageEntityType {
             MessageEntityType::TextMention => write!(f, "text_mention"),
             MessageEntityType::Spoiler => write!(f, "spoiler"),
             MessageEntityType::CustomEmoji => write!(f, "custom_emoji"),
+            MessageEntityType::Blockquote => write!(f, "blockquote"),
         }
     }
 }
@@ -817,7 +820,7 @@ pub struct ChatMember {
     pub can_send_polls: Option<bool>,
     pub can_send_other_messages: Option<bool>,
     pub can_add_web_page_previews: Option<bool>,
-    pub until_date: Option<bool>
+    pub until_date: Option<i32>
 }
 
 pub struct ChatMemberUpdated {
