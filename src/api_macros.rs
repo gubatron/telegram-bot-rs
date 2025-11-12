@@ -594,7 +594,7 @@ macro_rules! expand_parameters_reply_markup_into_string {
 #[macro_export]
 macro_rules! expand_make_request_to_message {
     ($res: ident) => {
-        if !$res["ok"].as_bool().unwrap() {
+        if !$res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Message = Custom::from_json($res["result"].clone());
@@ -606,7 +606,7 @@ macro_rules! expand_make_request_to_message {
 #[macro_export]
 macro_rules! expand_make_request_to_bool {
     ($res: ident) => {
-        if !$res["ok"].as_bool().unwrap() {
+        if !$res["ok"].as_bool().unwrap_or(false) {
             false
         } else {
             let ret: bool = Custom::from_json($res["result"].clone());
