@@ -70,7 +70,11 @@ impl Bot {
         let mut json_response = JsonValue::Null;
         match res {
             Ok(r) => match r.text() {
-                Ok(result) => json_response = json::parse(&*result).unwrap(),
+                Ok(result) => {
+                    if let Ok(parsed) = json::parse(&*result) {
+                        json_response = parsed;
+                    }
+                }
                 Err(_) => (),
             },
             Err(_) => (),
@@ -101,7 +105,7 @@ impl Bot {
         parameters.pop();
         let res = self.send_request("getUpdates".to_string(), parameters);
         let ret: Vec<Update> = Custom::from_json(res["result"].clone());
-        if !res["ok"].as_bool().unwrap() || ret.len() == 0 {
+        if !res["ok"].as_bool().unwrap_or(false) || ret.len() == 0 {
             None
         } else {
             self.offset = ret[ret.len() - 1].clone().update_id + 1;
@@ -112,7 +116,7 @@ impl Bot {
 
     pub fn get_me(&mut self) -> User {
         let res = self.send_request("getMe".to_string(), "".to_string());
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             User::empty()
         } else {
             let ret: User = Custom::from_json(res["result"].clone());
@@ -203,7 +207,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("copyMessage".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             0
         } else {
             let ret: i32 = Custom::from_json(res["result"].clone());
@@ -474,7 +478,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("sendMediaGroup".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Vec<Message> = Custom::from_json(res["result"].clone());
@@ -734,7 +738,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getUserProfilePhotos".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: UserProfilePhotos = Custom::from_json(res["result"].clone());
@@ -872,7 +876,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("exportChatInviteLink".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: String = Custom::from_json(res["result"].clone());
@@ -895,7 +899,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("createChatInviteLink".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: ChatInviteLink = Custom::from_json(res["result"].clone());
@@ -919,7 +923,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("editChatInviteLink".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: ChatInviteLink = Custom::from_json(res["result"].clone());
@@ -938,7 +942,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("revokeChatInviteLink".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: ChatInviteLink = Custom::from_json(res["result"].clone());
@@ -1045,7 +1049,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getChat".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Chat = Custom::from_json(res["result"].clone());
@@ -1060,7 +1064,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getChatAdministrators".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Vec<ChatMember> = Custom::from_json(res["result"].clone());
@@ -1075,7 +1079,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getChatMembersCount".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: i32 = Custom::from_json(res["result"].clone());
@@ -1090,7 +1094,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getChatMember".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: ChatMember = Custom::from_json(res["result"].clone());
@@ -1158,7 +1162,7 @@ impl Bot {
 
     pub fn get_my_commands(&mut self) -> Option<Vec<BotCommand>> {
         let res = self.send_request("getMyCommands".to_string(), "".to_string());
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Vec<BotCommand> = Custom::from_json(res["result"].clone());
@@ -1273,7 +1277,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("stopPoll".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: Poll = Custom::from_json(res["result"].clone());
@@ -1329,7 +1333,7 @@ impl Bot {
         }
         parameters.pop();
         let res = self.send_request("getStickerSet".to_string(), parameters);
-        if !res["ok"].as_bool().unwrap() {
+        if !res["ok"].as_bool().unwrap_or(false) {
             None
         } else {
             let ret: StickerSet = Custom::from_json(res["result"].clone());

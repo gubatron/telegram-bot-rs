@@ -40,6 +40,9 @@ pub enum MessageEntityType {
     Spoiler,
     CustomEmoji,
     Blockquote,
+    /// A type that was added to the Telegram protocol after this crate was last updated.
+    /// Received as an unrecognised string; treated as a no-op rather than a panic.
+    Unknown,
 }
 
 impl MessageEntityType {
@@ -64,7 +67,13 @@ impl MessageEntityType {
             "spoiler" => MessageEntityType::Spoiler,
             "custom_emoji" => MessageEntityType::CustomEmoji,
             "blockquote" => MessageEntityType::Blockquote,
-            _ => panic!("objects::MessageEntityType::from_string(\"{}\") error can't find MessageEntityType", s),
+            _ => {
+                eprintln!(
+                    "objects::MessageEntityType::from_string: unknown type \"{}\", treating as Unknown",
+                    s
+                );
+                MessageEntityType::Unknown
+            }
         }
     }
 }
@@ -90,6 +99,7 @@ impl fmt::Display for MessageEntityType {
             MessageEntityType::Spoiler => write!(f, "spoiler"),
             MessageEntityType::CustomEmoji => write!(f, "custom_emoji"),
             MessageEntityType::Blockquote => write!(f, "blockquote"),
+            MessageEntityType::Unknown => write!(f, "unknown"),
         }
     }
 }
