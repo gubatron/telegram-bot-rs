@@ -25,7 +25,7 @@ pub struct Bot {
 const BASE_URL: &str = "https://api.telegram.org/bot";
 
 impl Bot {
-    pub fn new<'a>(api_key: String) -> Bot {
+    pub fn new(api_key: String) -> Bot {
         Bot {
             key: api_key,
             offset: 0,
@@ -39,7 +39,6 @@ impl Bot {
     /// let received = rx.recv().unwrap();
     /// println!("Got: {}", received);
     /// ```
-
     pub fn start_polling(
         &mut self,
         tx: Sender<Update>,
@@ -49,15 +48,11 @@ impl Bot {
             .name("telegram-api-rs::start_polling loop thread".into())
             .stack_size(8 * 1024 * 1024);
         let handle = thread_builder.spawn(move || loop {
-            let updates = bot.get_updates(None, None, None);
-            match updates {
-                Some(us) => {
-                    for u in us {
-                        assert!(tx.send(u).is_ok());
-                    }
+            if let Some(us) = bot.get_updates(None, None, None) {
+                for u in us {
+                    assert!(tx.send(u).is_ok());
                 }
-                None => (),
-            };
+            }
         })?;
 
         Ok(handle)
@@ -68,16 +63,12 @@ impl Bot {
         // println!("{}", request);
         let res = reqwest::blocking::get(request);
         let mut json_response = JsonValue::Null;
-        match res {
-            Ok(r) => match r.text() {
-                Ok(result) => {
-                    if let Ok(parsed) = json::parse(&*result) {
-                        json_response = parsed;
-                    }
+        if let Ok(r) = res {
+            if let Ok(result) = r.text() {
+                if let Ok(parsed) = json::parse(&result) {
+                    json_response = parsed;
                 }
-                Err(_) => (),
-            },
-            Err(_) => (),
+            }
         }
         json_response
     }
@@ -89,23 +80,20 @@ impl Bot {
         allowed_updates: Option<Vec<String>>,
     ) -> Option<Vec<Update>> {
         let mut parameters = "".to_string();
-        parameters.push_str(&*format!("offset={}&", self.offset));
-        match limit {
-            Some(o) => parameters.push_str(&*format!("limit={}&", Custom::to_json(o))),
-            None => (),
+        parameters.push_str(&format!("offset={}&", self.offset));
+        if let Some(o) = limit {
+            parameters.push_str(&format!("limit={}&", Custom::to_json(o)));
         }
-        match timeout {
-            Some(o) => parameters.push_str(&*format!("timeout={}&", Custom::to_json(o))),
-            None => (),
+        if let Some(o) = timeout {
+            parameters.push_str(&format!("timeout={}&", Custom::to_json(o)));
         }
-        match allowed_updates {
-            Some(o) => parameters.push_str(&*format!("allowed_updates={}&", Custom::to_json(o))),
-            None => (),
+        if let Some(o) = allowed_updates {
+            parameters.push_str(&format!("allowed_updates={}&", Custom::to_json(o)));
         }
         parameters.pop();
         let res = self.send_request("getUpdates".to_string(), parameters);
         let ret: Vec<Update> = Custom::from_json(res["result"].clone());
-        if !res["ok"].as_bool().unwrap_or(false) || ret.len() == 0 {
+        if !res["ok"].as_bool().unwrap_or(false) || ret.is_empty() {
             None
         } else {
             self.offset = ret[ret.len() - 1].clone().update_id + 1;
