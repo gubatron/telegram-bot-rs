@@ -1,4 +1,4 @@
-.PHONY: all test build check clean run
+.PHONY: all test build check clippy clean run publish
 
 all: clean check test build run
 
@@ -10,6 +10,9 @@ build:
 
 check:
 	cargo check --tests && exit
+
+clippy:
+	cargo clippy --all-targets -- -D warnings && exit
 
 clean:
 	cargo clean && exit

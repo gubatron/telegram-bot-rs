@@ -16,6 +16,8 @@ use crate::objects::*;
 use crate::*;
 use json::JsonValue;
 use std::sync::mpsc::Sender;
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 pub struct Bot {
     key: String,
@@ -23,6 +25,41 @@ pub struct Bot {
 }
 
 const BASE_URL: &str = "https://api.telegram.org/bot";
+
+/// Server-side long-poll window (seconds) used by [`Bot::start_polling`].
+/// Telegram holds the getUpdates request open until an update arrives or
+/// this many seconds pass, so delivery stays instant while an idle bot makes
+/// one request per window instead of several per second.
+pub const LONG_POLL_TIMEOUT_SECS: i32 = 30;
+
+/// HTTP timeout for every Bot API request. Must exceed
+/// [`LONG_POLL_TIMEOUT_SECS`] so an idle long poll ends as an empty `ok`
+/// response from Telegram, not as a client-side timeout.
+pub const HTTP_TIMEOUT_SECS: u64 = 60;
+
+/// A getUpdates that returns nothing faster than this was an error
+/// (network, DNS, HTTP 5xx), not an expired long poll; the polling loop
+/// sleeps this long before retrying so failures can't become a busy loop.
+const POLL_ERROR_BACKOFF: Duration = Duration::from_secs(2);
+
+/// One blocking HTTP client shared by every request in the process.
+///
+/// Before 0.1.5 each request went through `reqwest::blocking::get`, which
+/// builds and tears down a whole Client (TLS config plus a background thread
+/// running its own tokio runtime) per call. Combined with the zero-timeout
+/// polling loop that was millions of thread/allocation cycles a day, which
+/// fragmented glibc malloc arenas until a long-running bot sat at ~4GB RSS
+/// (dbtc_canuto, 22 days uptime, 2026-10-15). A shared client also reuses
+/// pooled keep-alive connections instead of a TLS handshake per request.
+fn http_client() -> &'static reqwest::blocking::Client {
+    static CLIENT: OnceLock<reqwest::blocking::Client> = OnceLock::new();
+    CLIENT.get_or_init(|| {
+        reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(HTTP_TIMEOUT_SECS))
+            .build()
+            .expect("telegram-api-rs: failed to build HTTP client")
+    })
+}
 
 impl Bot {
     pub fn new(api_key: String) -> Bot {
@@ -33,6 +70,9 @@ impl Bot {
     }
 
     /// start_polling is used to get updates from the bot.
+    ///
+    /// Uses getUpdates long polling ([`LONG_POLL_TIMEOUT_SECS`]). The thread
+    /// exits once the receiving end of `tx` is dropped.
     /// ```ignore
     /// let (tx, rx) = mpsc::channel();
     /// bot.start_polling(tx);
@@ -48,9 +88,19 @@ impl Bot {
             .name("telegram-api-rs::start_polling loop thread".into())
             .stack_size(8 * 1024 * 1024);
         let handle = thread_builder.spawn(move || loop {
-            if let Some(us) = bot.get_updates(None, None, None) {
-                for u in us {
-                    assert!(tx.send(u).is_ok());
+            let started = Instant::now();
+            match bot.get_updates(None, Some(LONG_POLL_TIMEOUT_SECS), None) {
+                Some(us) => {
+                    for u in us {
+                        if tx.send(u).is_err() {
+                            return;
+                        }
+                    }
+                }
+                None => {
+                    if started.elapsed() < POLL_ERROR_BACKOFF {
+                        std::thread::sleep(POLL_ERROR_BACKOFF);
+                    }
                 }
             }
         })?;
@@ -61,7 +111,7 @@ impl Bot {
     fn send_request(&self, method: String, parameters: String) -> JsonValue {
         let request = format!("{}{}/{}?{}", BASE_URL, self.key, method, parameters);
         // println!("{}", request);
-        let res = reqwest::blocking::get(request);
+        let res = http_client().get(request).send();
         let mut json_response = JsonValue::Null;
         if let Ok(r) = res {
             if let Ok(result) = r.text() {

@@ -930,11 +930,10 @@ mod tests {
     #[test]
     fn test_minimal_user() {
         let json_user = json::parse("{\"id\":1234,\"is_bot\":true,\"first_name\":\"iamgroot\"}");
-        let user;
-        match json_user {
-            Ok(json_data) => user = User::from_json(json_data),
-            Err(_) => user = User::empty(),
-        }
+        let user = match json_user {
+            Ok(json_data) => User::from_json(json_data),
+            Err(_) => User::empty(),
+        };
         let actual = format!("{}", user.to_json());
         let reference = "{\"id\":1234,\"is_bot\":true,\"first_name\":\"iamgroot\"}".to_string();
         assert_eq!(actual, reference);
@@ -947,11 +946,10 @@ mod tests {
             \"can_read_all_group_messages\":false,\"supports_inline_queries\":true}"
             .to_string();
         let json_user = json::parse(reference.as_str());
-        let user;
-        match json_user {
-            Ok(json_data) => user = User::from_json(json_data),
-            Err(_) => user = User::empty(),
-        }
+        let user = match json_user {
+            Ok(json_data) => User::from_json(json_data),
+            Err(_) => User::empty(),
+        };
         let actual = format!("{}", user.to_json());
         assert_eq!(actual, reference);
     }
@@ -960,11 +958,10 @@ mod tests {
     #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
     fn test_invalid_user() {
         let json_user = json::parse("{\"id\":1234,\"first_name\":\"iamgroot\"}");
-        let _user;
-        match json_user {
-            Ok(json_data) => _user = User::from_json(json_data),
-            Err(_) => _user = User::empty(),
-        }
+        let _user = match json_user {
+            Ok(json_data) => User::from_json(json_data),
+            Err(_) => User::empty(),
+        };
     }
 
     #[test]
@@ -1008,11 +1005,10 @@ mod tests {
     #[test]
     fn test_minimal_me() {
         let json_me = json::parse("{\"type\":\"cashtag\",\"offset\":42,\"length\":69}");
-        let me;
-        match json_me {
-            Ok(json_data) => me = MessageEntity::from_json(json_data),
-            Err(_) => me = MessageEntity::empty(),
-        }
+        let me = match json_me {
+            Ok(json_data) => MessageEntity::from_json(json_data),
+            Err(_) => MessageEntity::empty(),
+        };
         let actual = format!("{}", me.to_json());
         let reference = "{\"type\":\"cashtag\",\"offset\":42,\"length\":69}".to_string();
         assert_eq!(actual, reference);
@@ -1024,11 +1020,10 @@ mod tests {
             \"url\":\"https://example.org\",\"user\":{\"id\":0,\"is_bot\":false,\"first_name\":\"user\"},\
             \"language\":\"python\"}".to_string();
         let json_me = json::parse(reference.as_str());
-        let me;
-        match json_me {
-            Ok(json_data) => me = MessageEntity::from_json(json_data),
-            Err(_) => me = MessageEntity::empty(),
-        }
+        let me = match json_me {
+            Ok(json_data) => MessageEntity::from_json(json_data),
+            Err(_) => MessageEntity::empty(),
+        };
         let actual = format!("{}", me.to_json());
         assert_eq!(actual, reference);
     }
@@ -1037,11 +1032,10 @@ mod tests {
     #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
     fn test_invalid_me() {
         let json_me = json::parse("{\"type\":\"cashtag\",\"length\":69}");
-        let _me;
-        match json_me {
-            Ok(json_data) => _me = MessageEntity::from_json(json_data),
-            Err(_) => _me = MessageEntity::empty(),
-        }
+        let _me = match json_me {
+            Ok(json_data) => MessageEntity::from_json(json_data),
+            Err(_) => MessageEntity::empty(),
+        };
     }
 
     #[test]
